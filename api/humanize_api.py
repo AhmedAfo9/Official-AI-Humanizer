@@ -6,7 +6,6 @@ import requests
 
 app = FastAPI(title="Official AI Humanizer API", version="1.0")
 
-# تفعيل الـ CORS بشكل صحيح تماماً لاستقبال الطلبات من صفحة Cloudflare
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,7 +23,6 @@ def humanize_text(request: HumanizeRequest):
     if not text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
     
-    # قراءة القواعد الـ 33 من ملف القواعد المحلي
     skill_prompt = ""
     if os.path.exists("SKILL.md"):
         with open("SKILL.md", "r", encoding="utf-8") as f:
@@ -46,12 +44,13 @@ def humanize_text(request: HumanizeRequest):
         "messages": [
             {
                 "role": "system", 
-                "content": f"You are an expert text humanizer implementing the strict Wikipedia AI cleanup rules outlined below:\n\n{skill_prompt}\n\nCRITICAL RULE: Meticulously maintain the exact original paragraphing, spacing, and line-break structure of the source text. Output ONLY the final humanized text cleanly. Do not add any intros, chatbot meta-commentary, or markdown wrappers."
+                "content": f"You are a master of advanced stylistic linguistic humanization. Your job is to completely rewrite the input text to completely eliminate academic AI structural signatures, bypassing advanced detectors like GPTZero and Turnitin while preserving the exact core meaning.\n\nHere are your strict 33 guiding rules:\n\n{skill_prompt}\n\nCRITICAL STRATEGY FOR HUMANIZATION:\n1. Destructure and re-architect the sentence syntax completely. Do not just swap words for synonyms. Change passive voice to active, split monotonous sentences, and introduce dynamic phrase lengths (high burstiness).\n2. Eradicate perfect robotic symmetry. Use natural transition flows. \n3. Keep the original semantic concepts intact, but frame them with human perplexity. Output ONLY the resulting raw text without wrappers or introductions."
             },
             {"role": "user", "content": text}
         ],
-        "temperature": 0.3,
-        "max_tokens": 2000  # قيد ذكي لتجاوز فحص الرصيد الأقصى في OpenRouter
+        "temperature": 0.85,  # رفع الحرارة لزيادة التنوع البشري العشوائي وغير المتوقع
+        "top_p": 0.95,        # إجبار النموذج على استخدام خيارات مفردات أكثر جرأة وعمقاً
+        "max_tokens": 2000
     }
     
     try:
