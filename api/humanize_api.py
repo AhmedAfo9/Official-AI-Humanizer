@@ -45,42 +45,38 @@ def humanize_text(request: HumanizeRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is missing.")
 
-    skill_prompt = ""
-    if os.path.exists("SKILL.md"):
-        with open("SKILL.md", "r", encoding="utf-8") as f:
-            skill_prompt = f.read()
-    else:
-        skill_prompt = "Apply strict academic humanization rules."
-
     try:
-        # ---- المرحلة الأولى: تطهير المفردات والألفاظ بناءً على الـ 33 قاعدة ----
+        # ---- المرحلة الأولى: تفكيك النص وتطهير العبارات المكشوفة لغوياً ----
         pass1_messages = [
             {
                 "role": "system", 
-                "content": f"Rewrite the following text to eliminate all textbook AI vocabulary and promotional language using these rules:\n\n{skill_prompt}\n\nFocus on lexical substitution and raw meaning extraction. Output ONLY the rewritten prose."
+                "content": (
+                    "You are an expert academic editor. Your job is to extract the raw arguments from the input text "
+                    "and completely draft them from scratch. Banish all predictable AI vocabulary (pivotal, crucial, delve, furthermore, testament, landscape). "
+                    "Write it in a clean, direct, non-robotic academic tone. Output ONLY the raw draft."
+                )
             },
             {"role": "user", "content": text}
         ]
-        draft_text = call_openrouter(pass1_messages, 0.85, 0.92, api_key)
+        draft_text = call_openrouter(pass1_messages, 0.82, 0.90, api_key)
 
-        # ---- المرحلة الثانية والأقوى: سحق الـ 40% المتبقية (تدمير الهيكل المتوقع والتون المتناسق) ----
+        # ---- المرحلة الثانية (تدمير البصمة الهيكلية): حقن التنوع النحوي الصارم ----
         pass2_messages = [
             {
                 "role": "system", 
                 "content": (
-                    "You are a ruthless native English academic editor combating AI detection algorithms (GPTZero/Turnitin). "
-                    "Your goal is to destroy the remaining 40% structural predictability in the text. "
-                    "Apply these absolute structural overrides:\n\n"
-                    "1. STRICT TRANSITION BAN: Completely ban mechanical transition words like 'Furthermore', 'Moreover', 'In addition', 'Consequently', 'Therefore', 'Thus', 'Hence'. Connect ideas by overlapping concepts or using direct narrative progression instead.\n"
-                    "2. DE-NOMINALIZATION: Convert heavy robotic noun phrases into active verbal clause structures (e.g., instead of 'the utilization of X provides an enhancement to Y', rewrite to 'using X improves Y').\n"
-                    "3. ASYMMETRICAL SYNTAX: Break any uniform pattern of subject-verb-object. Start some sentences with prepositional phrases, some with short assertions, and others with complex dependencies. Create an erratic, organic human text flow.\n"
-                    "4. ACADEMIC IDIOMS: Inject natural, idiomatic academic phrasing that native researchers use naturally but LLMs rarely generate due to low statistical probability.\n\n"
-                    "Output ONLY the final, polished human prose. No meta-commentary, no introductory text."
+                    "You are a native English professor editing a research paper to ensure it has zero robotic predictability (0% AI detection). "
+                    "The current draft is grammatically clean but its structural rhythm might trigger algorithms. You MUST bypass them using these strict criteria:\n\n"
+                    "1. MAXIMUM BURSTINESS: Force erratic sentence lengths. Alternate a highly complex sentence containing dependent clauses with a very short, blunt, punchy statement (e.g., 'This matters.', 'The data agreed.').\n"
+                    "2. ZERO ROBOTIC TRANSITIONS: Completely ban logical markers like 'Therefore', 'Moreover', 'Consequently', 'In addition', 'Thus', 'On one hand'. Instead, create organic transitions where the thoughts link naturally without a formal announcement.\n"
+                    "3. SYNTACTIC VARIATION: Avoid repetitive sentence setups. Do not start sentences with the same subject-verb format. Start with prepositional phrases, gerunds, or conditional structures.\n"
+                    "4. HUMAN IDIOMS & PHRASING: Frame assertions using active, direct human phrasing (e.g., replace 'A study was conducted by the authors' with 'We ran a study').\n\n"
+                    "Output ONLY the final, beautifully asymmetric human prose. Do not introduce it."
                 )
             },
             {"role": "user", "content": draft_text}
         ]
-        final_humanized = call_openrouter(pass2_messages, 0.98, 0.99, api_key)
+        final_humanized = call_openrouter(pass2_messages, 0.88, 0.95, api_key)
 
         return {"humanized_text": final_humanized}
 
@@ -89,4 +85,4 @@ def humanize_text(request: HumanizeRequest):
 
 @app.get("/")
 def root():
-    return {"status": "working", "message": "Official AI Humanizer API is live with Ultra-Variance Engine!"}
+    return {"status": "working", "message": "Ultra-Adversarial Humanizer Core Active."}
