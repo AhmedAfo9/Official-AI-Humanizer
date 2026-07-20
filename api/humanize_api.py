@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI(title="Official AI Humanizer API", version="1.0")
 
-# تفعيل الـ CORS لكي تستطيع صفحة index.html المستقبلية الاتصال بالسيرفر بأمان
+# تفعيل الـ CORS بشكل صحيح تماماً لاستقبال الطلبات من صفحة Cloudflare
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -50,7 +50,8 @@ def humanize_text(request: HumanizeRequest):
             },
             {"role": "user", "content": text}
         ],
-        "temperature": 0.3
+        "temperature": 0.3,
+        "max_tokens": 2000  # قيد ذكي لتجاوز فحص الرصيد الأقصى في OpenRouter
     }
     
     try:
@@ -62,7 +63,7 @@ def humanize_text(request: HumanizeRequest):
             raise HTTPException(status_code=r.status_code, detail=f"API Error: {r.text}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Connection Failed: {str(e)}")
-        
-    @app.get("/")
-    def root():
-        return {"status": "working", "message": "Official AI Humanizer API is live!"}
+
+@app.get("/")
+def root():
+    return {"status": "working", "message": "Official AI Humanizer API is live!"}
