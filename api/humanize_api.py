@@ -23,7 +23,7 @@ def call_openrouter(messages, temp, top_p, api_key):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "google/gemini-2.5-flash",
+        "model": "meta-llama/llama-3.1-8b-instruct",  # تبديل المحرك إلى ملك الأنسنة والتخفي
         "messages": messages,
         "temperature": temp,
         "top_p": top_p,
@@ -45,38 +45,42 @@ def humanize_text(request: HumanizeRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is missing.")
 
+    skill_prompt = ""
+    if os.path.exists("SKILL.md"):
+        with open("SKILL.md", "r", encoding="utf-8") as f:
+            skill_prompt = f.read()
+
     try:
-        # ---- المرحلة الأولى: تفكيك النص وتطهير العبارات المكشوفة لغوياً ----
+        # ---- المرحلة الأولى: تفكيك العبارات وتغيير المعجم اللغوي ----
         pass1_messages = [
             {
                 "role": "system", 
                 "content": (
-                    "You are an expert academic editor. Your job is to extract the raw arguments from the input text "
-                    "and completely draft them from scratch. Banish all predictable AI vocabulary (pivotal, crucial, delve, furthermore, testament, landscape). "
-                    "Write it in a clean, direct, non-robotic academic tone. Output ONLY the raw draft."
+                    f"You are a native human academic writer. Completely rewrite the input text to convey the exact same core ideas "
+                    f"but without using any typical machine phrasing or predictable words. Apply these 33 rules strictly:\n\n{skill_prompt}\n\n"
+                    "Write organically. Output ONLY the rewritten text."
                 )
             },
             {"role": "user", "content": text}
         ]
-        draft_text = call_openrouter(pass1_messages, 0.82, 0.90, api_key)
+        draft_text = call_openrouter(pass1_messages, 0.85, 0.9, api_key)
 
-        # ---- المرحلة الثانية (تدمير البصمة الهيكلية): حقن التنوع النحوي الصارم ----
+        # ---- المرحلة الثانية: كسر القوالب النحوية وحظر الروابط الآلية ----
         pass2_messages = [
             {
                 "role": "system", 
                 "content": (
-                    "You are a native English professor editing a research paper to ensure it has zero robotic predictability (0% AI detection). "
-                    "The current draft is grammatically clean but its structural rhythm might trigger algorithms. You MUST bypass them using these strict criteria:\n\n"
-                    "1. MAXIMUM BURSTINESS: Force erratic sentence lengths. Alternate a highly complex sentence containing dependent clauses with a very short, blunt, punchy statement (e.g., 'This matters.', 'The data agreed.').\n"
-                    "2. ZERO ROBOTIC TRANSITIONS: Completely ban logical markers like 'Therefore', 'Moreover', 'Consequently', 'In addition', 'Thus', 'On one hand'. Instead, create organic transitions where the thoughts link naturally without a formal announcement.\n"
-                    "3. SYNTACTIC VARIATION: Avoid repetitive sentence setups. Do not start sentences with the same subject-verb format. Start with prepositional phrases, gerunds, or conditional structures.\n"
-                    "4. HUMAN IDIOMS & PHRASING: Frame assertions using active, direct human phrasing (e.g., replace 'A study was conducted by the authors' with 'We ran a study').\n\n"
-                    "Output ONLY the final, beautifully asymmetric human prose. Do not introduce it."
+                    "You are an English professor editing a draft to be 100% indistinguishable from human writing. "
+                    "Your primary goal is to bypass advanced statistical AI detectors. Implement these strict structural mandates:\n\n"
+                    "1. TOTAL TRANSITION BAN: Never use words like 'Furthermore', 'Moreover', 'Therefore', 'Thus', 'Consequently', or 'In conclusion'. Just state the sentences back-to-back naturally.\n"
+                    "2. HIGH BURSTINESS: Vary your sentence structures chaotically. Use a long, descriptive sentence followed immediately by a short, blunt 3-word sentence.\n"
+                    "3. HUMAN PACING: Write with a natural, slightly flawed human flow. Avoid perfect robotic symmetry or over-polished transitions.\n\n"
+                    "Output ONLY the final raw text."
                 )
             },
             {"role": "user", "content": draft_text}
         ]
-        final_humanized = call_openrouter(pass2_messages, 0.88, 0.95, api_key)
+        final_humanized = call_openrouter(pass2_messages, 0.90, 0.93, api_key)
 
         return {"humanized_text": final_humanized}
 
@@ -85,4 +89,4 @@ def humanize_text(request: HumanizeRequest):
 
 @app.get("/")
 def root():
-    return {"status": "working", "message": "Ultra-Adversarial Humanizer Core Active."}
+    return {"status": "working", "message": "Llama-Powered Adversarial Core Active."}
