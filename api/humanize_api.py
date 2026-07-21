@@ -23,9 +23,9 @@ def call_openrouter(messages, temp, top_p, api_key):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "meta-llama/llama-3.1-8b-instruct",  # تبديل المحرك إلى ملك الأنسنة والتخفي
+        "model": "meta-llama/llama-3.1-8b-instruct",
         "messages": messages,
-        "temperature": temp,
+        "temperature": temp,  # تثبيت الحرارة لمنع الشطحات والعشوائية
         "top_p": top_p,
         "max_tokens": 2000
     }
@@ -51,36 +51,37 @@ def humanize_text(request: HumanizeRequest):
             skill_prompt = f.read()
 
     try:
-        # ---- المرحلة الأولى: تفكيك العبارات وتغيير المعجم اللغوي ----
+        # ---- المرور الأول: تنظيف المفردات والكلمات الركيكة (الحرارة 0.65) ----
         pass1_messages = [
             {
                 "role": "system", 
                 "content": (
-                    f"You are a native human academic writer. Completely rewrite the input text to convey the exact same core ideas "
-                    f"but without using any typical machine phrasing or predictable words. Apply these 33 rules strictly:\n\n{skill_prompt}\n\n"
-                    "Write organically. Output ONLY the rewritten text."
+                    f"You are a native human academic editor. Rewrite the text to eliminate all AI "
+                    f"buzzwords, formal fluff, and robotic vocabulary according to these strict rules:\n\n{skill_prompt}\n\n"
+                    "Focus on clean, natural, direct phrasing. Output ONLY the raw rewritten text."
                 )
             },
             {"role": "user", "content": text}
         ]
-        draft_text = call_openrouter(pass1_messages, 0.85, 0.9, api_key)
+        draft_text = call_openrouter(pass1_messages, 0.65, 0.88, api_key)
 
-        # ---- المرحلة الثانية: كسر القوالب النحوية وحظر الروابط الآلية ----
+        # ---- المرور الثاني: تثبيت النمط النحوي الموزون ومنع الروابط الروبوتية (الحرارة 0.68) ----
         pass2_messages = [
             {
                 "role": "system", 
                 "content": (
-                    "You are an English professor editing a draft to be 100% indistinguishable from human writing. "
-                    "Your primary goal is to bypass advanced statistical AI detectors. Implement these strict structural mandates:\n\n"
-                    "1. TOTAL TRANSITION BAN: Never use words like 'Furthermore', 'Moreover', 'Therefore', 'Thus', 'Consequently', or 'In conclusion'. Just state the sentences back-to-back naturally.\n"
-                    "2. HIGH BURSTINESS: Vary your sentence structures chaotically. Use a long, descriptive sentence followed immediately by a short, blunt 3-word sentence.\n"
-                    "3. HUMAN PACING: Write with a natural, slightly flawed human flow. Avoid perfect robotic symmetry or over-polished transitions.\n\n"
-                    "Output ONLY the final raw text."
+                    "You are an academic researcher locking in a human writing voice to guarantee 0% AI detection. "
+                    "You must preserve the meaning of the draft while applying this strict, stabilized structural pattern:\n\n"
+                    "1. STABILIZED BURSTINESS: Force a steady mix of punchy short sentences (4-7 words) right after long, descriptive ones. Never let three sentences in a row have similar lengths.\n"
+                    "2. ZERO DISCOURSE MARKERS: Completely ban transitions like 'Furthermore', 'Moreover', 'Therefore', 'Thus', 'In addition', 'Consequently', or 'In conclusion'. Just advance the thoughts directly.\n"
+                    "3. ACTIVE HUMAN CHOICE: Use active voice and direct phrasing ('We analyzed', 'This shows') rather than heavy passive constructs ('An analysis was performed').\n"
+                    "4. NO REPETITION: Do not start consecutive sentences with the same subject or noun structure.\n\n"
+                    "Output ONLY the final, beautifully stabilized human text."
                 )
             },
             {"role": "user", "content": draft_text}
         ]
-        final_humanized = call_openrouter(pass2_messages, 0.90, 0.93, api_key)
+        final_humanized = call_openrouter(pass2_messages, 0.68, 0.90, api_key)
 
         return {"humanized_text": final_humanized}
 
@@ -89,4 +90,4 @@ def humanize_text(request: HumanizeRequest):
 
 @app.get("/")
 def root():
-    return {"status": "working", "message": "Llama-Powered Adversarial Core Active."}
+    return {"status": "working", "message": "Stabilized Llama 3.1 Humanizer Core Active."}
