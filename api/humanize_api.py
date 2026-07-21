@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-app = FastAPI(title="Official AI Humanizer - Pivot Engine", version="2.0")
+app = FastAPI(title="Official AI Humanizer - Direct Engine", version="3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,31 +17,36 @@ app.add_middleware(
 class HumanizeRequest(BaseModel):
     text: str
 
-# دالة مجانية وسريعة للترجمة عبر محرك Google Translate المباشر
-def google_translate(text: str, target_lang: str) -> str:
-    try:
-        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={requests.utils.quote(text)}"
-        res = requests.get(url, timeout=15)
-        if res.status_code == 200:
-            data = res.json()
-            translated = "".join([item[0] for item in data[0] if item[0]])
-            return translated
-    except Exception:
-        pass
-    return text  # العودة للنص في حال فشل الاتصال المؤقت
-
-# دالة الاستدعاء المباشر لنموذج DeepSeek عبر OpenRouter
-def call_deepseek(messages: list, temp: float, api_key: str) -> str:
+def call_deepseek_humanizer(text: str, api_key: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
+    
+    # هندسة أوامر هجومية لإلغاء أي بصمة رقمية وتفكيك الجمل
+    system_prompt = (
+        "You are a native English academic researcher and senior editor. "
+        "Your sole task is to rewrite the provided text so that it completely bypasses modern AI detectors (GPTZero, Turnitin) "
+        "while maintaining the core academic ideas.\n\n"
+        "STRICT REWRITING RULES:\n"
+        "1. HIGH BURSTINESS: Create an erratic, organic sentence flow. Mix very short sentences (3-6 words) with longer, descriptive ones.\n"
+        "2. BAN AI TRANSITIONS: Absolute ban on 'Furthermore', 'Moreover', 'Therefore', 'Thus', 'Consequently', 'In addition', 'In conclusion'. Never start a sentence with these.\n"
+        "3. DE-NOMINALIZE: Change heavy noun phrases into active, direct statements (e.g., replace 'The implementation of X was conducted' with 'We implemented X').\n"
+        "4. NO TEXTBOOK SYMMETRY: Avoid perfectly balanced or repetitive sentence setups. Make the rhythm sound like a human writing thoughts directly from memory.\n"
+        "5. Output ONLY the raw final humanized text. No disclaimers, no intros."
+    )
+
     payload = {
-        "model": "deepseek/deepseek-chat",  # استدعاء نموذج DeepSeek الرسمي
-        "messages": messages,
-        "temperature": temp,                # الاعتماد على درجة الحرارة 1.3 الموصى بها في الأداة
-        "max_tokens": 2000
+        "model": "deepseek/deepseek-chat",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": text}
+        ],
+        "temperature": 0.85,
+        "top_p": 0.92,
+        "max_tokens": 2500
     }
+    
     r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=60)
     if r.status_code == 200:
         return r.json()['choices'][0]['message']['content'].strip()
@@ -56,41 +61,14 @@ def humanize_text(request: HumanizeRequest):
     
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is missing on Render.")
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY environment variable is missing on Render.")
 
     try:
-        # ---- الخطوة 1: اعادة صياغة عبر DeepSeek وتحويلها للغة الصينية (ZH) ----
-        pass1_messages = [
-            {
-                "role": "system",
-                "content": "You are a multilingual AI text transformation pipeline. Rewrite the input text to preserve its core academic meaning, but express it entirely in Simplified Chinese (ZH) with structural variation."
-            },
-            {"role": "user", "content": text}
-        ]
-        chinese_text = call_deepseek(pass1_messages, 1.0, api_key)
-
-        # ---- الخطوة 2: ترجمة النص الصيني إلى اللغة التركية (TR) عبر Google Translate ----
-        turkish_text = google_translate(chinese_text, "tr")
-
-        # ---- الخطوة 3: إعادة بناء النص إلى الإنجليزية البشري الصافية عبر DeepSeek (حرارة 1.3) ----
-        pass3_messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a master English reconstruction engine. Reconstruct the provided text back into highly natural, "
-                    "fluent, and professional English. Remove all translation artifacts, destroy any lingering robotic sentence flows, "
-                    "and deliver clean human-sounding prose. Output ONLY the final reconstructed English text without wrappers."
-                )
-            },
-            {"role": "user", "content": turkish_text}
-        ]
-        final_english_text = call_deepseek(pass3_messages, 1.3, api_key)
-
-        return {"humanized_text": final_english_text}
-
+        final_text = call_deepseek_humanizer(text, api_key)
+        return {"humanized_text": final_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 def root():
-    return {"status": "working", "message": "DeepSeek Multi-Lingual Pivot Humanizer API is live!"}
+    return {"status": "working", "message": "Direct DeepSeek Humanizer Engine is Live!"}
