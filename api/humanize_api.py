@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-app = FastAPI(title="Official AI High-Entropy Humanizer", version="8.5")
+app = FastAPI(title="Official AI Hybrid Purge Engine", version="9.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,35 +18,60 @@ app.add_middleware(
 class HumanizeRequest(BaseModel):
     text: str
 
+def python_ngram_purge(text: str) -> str:
+    """
+    مرشح بايثون حتمي لتطهير النص من عبارات البصمة الرقمية الشائعة للذكاء الاصطناعي.
+    """
+    replacements = {
+        r'\bplays a crucial role in\b': 'is key to',
+        r'\bplays a vital role in\b': 'matters significantly for',
+        r'\bit is important to note that\b': 'notably,',
+        r'\bit is worth noting that\b': 'importantly,',
+        r'\bdelves into\b': 'examines',
+        r'\bserves as a testament to\b': 'shows',
+        r'\bin order to\b': 'to',
+        r'\bfurthermore,?\b': 'also,',
+        r'\bmoreover,?\b': 'in addition,',
+        r'\bconsequently,?\b': 'as a result,',
+        r'\btherefore,?\b': 'thus,',
+        r'\bin conclusion,?\b': 'overall,',
+        r'\bmultifaceted\b': 'complex',
+        r'\bvital component\b': 'main part',
+        r'\bshed light on\b': 'explain',
+    }
+    
+    purged_text = text
+    for pattern, replacement in replacements.items():
+        purged_text = re.sub(pattern, replacement, purged_text, flags=re.IGNORECASE)
+        
+    return purged_text
+
 def humanize_single_block(block_text: str, api_key: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     
+    # أوامر هندسية لتغيير بناء الجملة وتقديم ظروف الزمان والمكان
     system_prompt = (
-        "You are a native English scholar and editorial strategist. "
-        "Your task is to completely rewrite the input text to achieve a 0% AI detection score on GPTZero and Turnitin, "
-        "while strictly preserving the original core ideas and academic meaning.\n\n"
-        "HUMANIZATION TACTICS:\n"
-        "1. HIGH SYNTACTIC DIVERSITY: Mix sentence structures continuously. Place complex clauses right next to short, direct statements.\n"
-        "2. ACTIVE & DIRECT PHRASING: Convert heavy passive noun structures into clean, active human verbs.\n"
-        "3. BAN AI MARKERS: Zero tolerance for standard transition words (Furthermore, Moreover, Consequently, In addition, Therefore, Thus, In summary).\n"
-        "4. NATURAL CADENCE: Write with organic human cadence, varied vocabulary, and direct thought flow.\n"
-        "5. PRESERVE BLOCK INTEGRITY: Do NOT split paragraphs, add bullet points, or output conversational filler. Return ONLY the rewritten text of this paragraph."
+        "You are an academic copyeditor rewriting a text to be indistinguishable from human writing.\n\n"
+        "REWRITING DIRECTIVES:\n"
+        "1. CLAUSE REORDERING: Frequently start sentences with prepositional phrases, dependent clauses, or main verbs rather than subject-first templates.\n"
+        "2. VARY SENTENCE RHYTHM: Create a sharp contrast between brief sentences (4-7 words) and longer analytical ones.\n"
+        "3. DE-NOMINALIZE: Change passive abstract nouns into direct active human actions.\n"
+        "4. PRESERVE BLOCK INTEGRITY: Do not add extra line breaks or formatting. Return ONLY the transformed text of this exact block."
     )
 
     payload = {
-        # التبديل إلى Llama 3.3 70B لتدمير التوقع الإحصائي للمفردات
-        "model": "meta-llama/llama-3.3-70b-instruct",
+        "model": "deepseek/deepseek-chat",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": block_text}
         ],
-        "temperature": 0.95,
-        "top_p": 0.92,
-        "frequency_penalty": 0.45,
-        "presence_penalty": 0.35,
+        "temperature": 0.92,
+        "top_p": 0.90,
+        "frequency_penalty": 0.50,
+        "presence_penalty": 0.30,
         "max_tokens": 2000
     }
     
@@ -54,7 +79,8 @@ def humanize_single_block(block_text: str, api_key: str) -> str:
     if r.status_code == 200:
         res = r.json()['choices'][0]['message']['content'].strip()
         res = re.sub(r'\s*\n\s*', ' ', res)
-        return res
+        # تطبيق مرشح البايثون الحتمي بعد خروج النص من النموذج
+        return python_ngram_purge(res)
     else:
         raise HTTPException(status_code=r.status_code, detail=f"OpenRouter API Error: {r.text}")
 
@@ -91,4 +117,4 @@ def humanize_text(request: HumanizeRequest):
 
 @app.get("/")
 def root():
-    return {"status": "working", "message": "High-Entropy Llama-3.3 Humanizer v8.5 is Active!"}
+    return {"status": "working", "message": "Hybrid N-Gram Purge Engine v9.0 is Active!"}
