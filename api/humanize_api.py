@@ -1,10 +1,10 @@
 import os
+import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests
 
-app = FastAPI(title="Official AI Humanizer API", version="1.0")
+app = FastAPI(title="Official AI Humanizer - Pivot Engine", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,23 +17,36 @@ app.add_middleware(
 class HumanizeRequest(BaseModel):
     text: str
 
-def call_openrouter(messages, temp, top_p, api_key):
+# دالة مجانية وسريعة للترجمة عبر محرك Google Translate المباشر
+def google_translate(text: str, target_lang: str) -> str:
+    try:
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={requests.utils.quote(text)}"
+        res = requests.get(url, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            translated = "".join([item[0] for item in data[0] if item[0]])
+            return translated
+    except Exception:
+        pass
+    return text  # العودة للنص في حال فشل الاتصال المؤقت
+
+# دالة الاستدعاء المباشر لنموذج DeepSeek عبر OpenRouter
+def call_deepseek(messages: list, temp: float, api_key: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "meta-llama/llama-3.1-8b-instruct",
+        "model": "deepseek/deepseek-chat",  # استدعاء نموذج DeepSeek الرسمي
         "messages": messages,
-        "temperature": temp,  # تثبيت الحرارة لمنع الشطحات والعشوائية
-        "top_p": top_p,
+        "temperature": temp,                # الاعتماد على درجة الحرارة 1.3 الموصى بها في الأداة
         "max_tokens": 2000
     }
     r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=60)
     if r.status_code == 200:
         return r.json()['choices'][0]['message']['content'].strip()
     else:
-        raise HTTPException(status_code=r.status_code, detail=f"OpenRouter Error: {r.text}")
+        raise HTTPException(status_code=r.status_code, detail=f"DeepSeek API Error: {r.text}")
 
 @app.post("/humanize")
 def humanize_text(request: HumanizeRequest):
@@ -43,51 +56,41 @@ def humanize_text(request: HumanizeRequest):
     
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is missing.")
-
-    skill_prompt = ""
-    if os.path.exists("SKILL.md"):
-        with open("SKILL.md", "r", encoding="utf-8") as f:
-            skill_prompt = f.read()
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is missing on Render.")
 
     try:
-        # ---- المرور الأول: تنظيف المفردات والكلمات الركيكة (الحرارة 0.65) ----
+        # ---- الخطوة 1: اعادة صياغة عبر DeepSeek وتحويلها للغة الصينية (ZH) ----
         pass1_messages = [
             {
-                "role": "system", 
-                "content": (
-                    f"You are a native human academic editor. Rewrite the text to eliminate all AI "
-                    f"buzzwords, formal fluff, and robotic vocabulary according to these strict rules:\n\n{skill_prompt}\n\n"
-                    "Focus on clean, natural, direct phrasing. Output ONLY the raw rewritten text."
-                )
+                "role": "system",
+                "content": "You are a multilingual AI text transformation pipeline. Rewrite the input text to preserve its core academic meaning, but express it entirely in Simplified Chinese (ZH) with structural variation."
             },
             {"role": "user", "content": text}
         ]
-        draft_text = call_openrouter(pass1_messages, 0.65, 0.88, api_key)
+        chinese_text = call_deepseek(pass1_messages, 1.0, api_key)
 
-        # ---- المرور الثاني: تثبيت النمط النحوي الموزون ومنع الروابط الروبوتية (الحرارة 0.68) ----
-        pass2_messages = [
+        # ---- الخطوة 2: ترجمة النص الصيني إلى اللغة التركية (TR) عبر Google Translate ----
+        turkish_text = google_translate(chinese_text, "tr")
+
+        # ---- الخطوة 3: إعادة بناء النص إلى الإنجليزية البشري الصافية عبر DeepSeek (حرارة 1.3) ----
+        pass3_messages = [
             {
-                "role": "system", 
+                "role": "system",
                 "content": (
-                    "You are an academic researcher locking in a human writing voice to guarantee 0% AI detection. "
-                    "You must preserve the meaning of the draft while applying this strict, stabilized structural pattern:\n\n"
-                    "1. STABILIZED BURSTINESS: Force a steady mix of punchy short sentences (4-7 words) right after long, descriptive ones. Never let three sentences in a row have similar lengths.\n"
-                    "2. ZERO DISCOURSE MARKERS: Completely ban transitions like 'Furthermore', 'Moreover', 'Therefore', 'Thus', 'In addition', 'Consequently', or 'In conclusion'. Just advance the thoughts directly.\n"
-                    "3. ACTIVE HUMAN CHOICE: Use active voice and direct phrasing ('We analyzed', 'This shows') rather than heavy passive constructs ('An analysis was performed').\n"
-                    "4. NO REPETITION: Do not start consecutive sentences with the same subject or noun structure.\n\n"
-                    "Output ONLY the final, beautifully stabilized human text."
+                    "You are a master English reconstruction engine. Reconstruct the provided text back into highly natural, "
+                    "fluent, and professional English. Remove all translation artifacts, destroy any lingering robotic sentence flows, "
+                    "and deliver clean human-sounding prose. Output ONLY the final reconstructed English text without wrappers."
                 )
             },
-            {"role": "user", "content": draft_text}
+            {"role": "user", "content": turkish_text}
         ]
-        final_humanized = call_openrouter(pass2_messages, 0.68, 0.90, api_key)
+        final_english_text = call_deepseek(pass3_messages, 1.3, api_key)
 
-        return {"humanized_text": final_humanized}
+        return {"humanized_text": final_english_text}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 def root():
-    return {"status": "working", "message": "Stabilized Llama 3.1 Humanizer Core Active."}
+    return {"status": "working", "message": "DeepSeek Multi-Lingual Pivot Humanizer API is live!"}
