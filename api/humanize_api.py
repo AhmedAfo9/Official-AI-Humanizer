@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-app = FastAPI(title="Official AI Hybrid Purge Engine", version="9.0")
+app = FastAPI(title="Official AI Sovereign Anti-Detection Core", version="10.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,48 +18,46 @@ app.add_middleware(
 class HumanizeRequest(BaseModel):
     text: str
 
-def python_ngram_purge(text: str) -> str:
+def python_deep_cleanse(text: str) -> str:
     """
-    مرشح بايثون حتمي لتطهير النص من عبارات البصمة الرقمية الشائعة للذكاء الاصطناعي.
+    تطهير حتمي مباشر في البايثون لأكثر العبارات التي ترصدها كواشف Turnitin و GPTZero
     """
-    replacements = {
-        r'\bplays a crucial role in\b': 'is key to',
-        r'\bplays a vital role in\b': 'matters significantly for',
-        r'\bit is important to note that\b': 'notably,',
-        r'\bit is worth noting that\b': 'importantly,',
-        r'\bdelves into\b': 'examines',
-        r'\bserves as a testament to\b': 'shows',
+    patterns = {
+        r'\bplays a (crucial|vital|pivotal|key) role in\b': 'drives',
+        r'\bit is (important|worth) noting that\b': 'notably,',
+        r'\bserves as a testament to\b': 'demonstrates',
+        r'\bdelves into\b': 'explores',
         r'\bin order to\b': 'to',
         r'\bfurthermore,?\b': 'also,',
-        r'\bmoreover,?\b': 'in addition,',
-        r'\bconsequently,?\b': 'as a result,',
-        r'\btherefore,?\b': 'thus,',
-        r'\bin conclusion,?\b': 'overall,',
-        r'\bmultifaceted\b': 'complex',
-        r'\bvital component\b': 'main part',
-        r'\bshed light on\b': 'explain',
+        r'\bmoreover,?\b': 'beyond this,',
+        r'\bconsequently,?\b': 'thus,',
+        r'\btherefore,?\b': 'hence,',
+        r'\bin conclusion,?\b': 'ultimately,',
+        r'\bmultifaceted\b': 'varied',
+        r'\bintricate\b': 'complex',
+        r'\bshed light on\b': 'clarify',
     }
-    
-    purged_text = text
-    for pattern, replacement in replacements.items():
-        purged_text = re.sub(pattern, replacement, purged_text, flags=re.IGNORECASE)
-        
-    return purged_text
+    cleaned = text
+    for pat, repl in patterns.items():
+        cleaned = re.sub(pat, repl, cleaned, flags=re.IGNORECASE)
+    return cleaned
 
-def humanize_single_block(block_text: str, api_key: str) -> str:
+def execute_sovereign_transform(block_text: str, api_key: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     
-    # أوامر هندسية لتغيير بناء الجملة وتقديم ظروف الزمان والمكان
+    # توجيهات ألسنية صارمة لتفكيك النمط الإحصائي المألوف
     system_prompt = (
-        "You are an academic copyeditor rewriting a text to be indistinguishable from human writing.\n\n"
-        "REWRITING DIRECTIVES:\n"
-        "1. CLAUSE REORDERING: Frequently start sentences with prepositional phrases, dependent clauses, or main verbs rather than subject-first templates.\n"
-        "2. VARY SENTENCE RHYTHM: Create a sharp contrast between brief sentences (4-7 words) and longer analytical ones.\n"
-        "3. DE-NOMINALIZE: Change passive abstract nouns into direct active human actions.\n"
-        "4. PRESERVE BLOCK INTEGRITY: Do not add extra line breaks or formatting. Return ONLY the transformed text of this exact block."
+        "You are an elite linguistic strategist tasked with completely destroying AI detection signatures (GPTZero, Turnitin) "
+        "while preserving the original academic core facts.\n\n"
+        "UNCOMPROMISING REWRITING RULES:\n"
+        "1. EXTREME SYNTACTIC VARIATION: Invert standard sentence order. Begin sentences with adverbial clauses, prepositional phrases, or direct action verbs.\n"
+        "2. UNPREDICTABLE RHYTHM: Alternate abruptly between punchy short sentences (4-7 words) and winding analytical thoughts.\n"
+        "3. DE-NOMINALIZE: Convert all passive noun-heavy phrasing into active, vivid verbs.\n"
+        "4. ABSOLUTE BAN ON AI FORMULAS: Never use robotic academic connectors or standard AI buzzwords.\n"
+        "5. PRESERVE BLOCK LAYOUT: Do not introduce line breaks or markdown formatting. Output ONLY the rewritten text of this paragraph."
     )
 
     payload = {
@@ -68,10 +66,10 @@ def humanize_single_block(block_text: str, api_key: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": block_text}
         ],
-        "temperature": 0.92,
-        "top_p": 0.90,
-        "frequency_penalty": 0.50,
-        "presence_penalty": 0.30,
+        "temperature": 0.95,
+        "top_p": 0.93,
+        "frequency_penalty": 0.60,  # عقوبة قاسية لمنع تكرار أنماط الجمل
+        "presence_penalty": 0.40,
         "max_tokens": 2000
     }
     
@@ -79,8 +77,7 @@ def humanize_single_block(block_text: str, api_key: str) -> str:
     if r.status_code == 200:
         res = r.json()['choices'][0]['message']['content'].strip()
         res = re.sub(r'\s*\n\s*', ' ', res)
-        # تطبيق مرشح البايثون الحتمي بعد خروج النص من النموذج
-        return python_ngram_purge(res)
+        return python_deep_cleanse(res)
     else:
         raise HTTPException(status_code=r.status_code, detail=f"OpenRouter API Error: {r.text}")
 
@@ -94,8 +91,8 @@ def process_text_structure(full_text: str, api_key: str) -> str:
         if not block_str:
             continue
         
-        humanized_block = humanize_single_block(block_str, api_key)
-        processed_blocks.append(humanized_block)
+        humanized = execute_sovereign_transform(block_str, api_key)
+        processed_blocks.append(humanized)
         
     return "\n\n".join(processed_blocks)
 
@@ -117,4 +114,4 @@ def humanize_text(request: HumanizeRequest):
 
 @app.get("/")
 def root():
-    return {"status": "working", "message": "Hybrid N-Gram Purge Engine v9.0 is Active!"}
+    return {"status": "working", "message": "Sovereign Anti-Detection Core v10.0 Active!"}
